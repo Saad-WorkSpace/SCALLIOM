@@ -69,7 +69,7 @@ const checkoutHandler = {
       const imageOrigin = new URL(request.url).origin;
       const canUseProductImages = imageOrigin.startsWith('https://');
 
-      const session = await stripe.checkout.sessions.create({
+      const sessionParams: Stripe.Checkout.SessionCreateParams = {
         mode: 'payment',
         customer_creation: 'always',
         billing_address_collection: 'auto',
@@ -137,7 +137,23 @@ const checkoutHandler = {
         },
         success_url: `${returnBase}?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${returnBase}?checkout=cancelled#shop`,
-      });
+      };
+
+      let session: Stripe.Checkout.Session;
+      try {
+        session = await stripe.checkout.sessions.create(sessionParams);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : '';
+        if (!message.includes('valid head office address')) {
+          throw error;
+        }
+
+        console.warn('Stripe Tax is pending a valid head-office address; creating a test checkout without automatic tax.');
+        session = await stripe.checkout.sessions.create({
+          ...sessionParams,
+          automatic_tax: { enabled: false },
+        });
+      }
 
       if (!session.url) {
         throw new Error('MISSING_CHECKOUT_URL');
