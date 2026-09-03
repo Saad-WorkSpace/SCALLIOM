@@ -20,7 +20,6 @@ import {
   Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
@@ -79,7 +78,9 @@ type CartItem = {
   size: Size;
   quantity: number;
 };
-type CheckoutStep = 'delivery' | 'payment' | 'success';
+type CheckoutStep = 'payment' | 'success';
+
+const productionCheckoutApi = 'https://scalliom-git-main-pr0ject-2026.vercel.app/api';
 
 type ModelTool = {
   name: string;
@@ -174,7 +175,7 @@ export default function Home() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const [policiesOpen, setPoliciesOpen] = useState(false);
-  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>('delivery');
+  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>('payment');
   const [selectedColor, setSelectedColor] = useState(0);
   const [selectedSize, setSelectedSize] = useState<Size>('M');
   const [garmentSide, setGarmentSide] = useState<GarmentSide>('front');
@@ -182,25 +183,12 @@ export default function Home() {
   const [cartReady, setCartReady] = useState(false);
   const [added, setAdded] = useState(false);
   const [completedOrder, setCompletedOrder] = useState({ number: '', total: 0 });
-  const [shippingCountry, setShippingCountry] = useState('United States');
-  const [shippingRegion, setShippingRegion] = useState('IL');
-  const [expressNotice, setExpressNotice] = useState('');
+  const [checkoutPending, setCheckoutPending] = useState(false);
+  const [checkoutError, setCheckoutError] = useState('');
 
   const activeColor = colorways[selectedColor];
   const bagCount = cartItems.reduce((total, item) => total + item.quantity, 0);
   const subtotal = cartItems.reduce((total, item) => total + item.quantity * 68, 0);
-  const shipping = subtotal === 0
-    ? 0
-    : shippingCountry === 'United States'
-      ? subtotal >= 120 ? 0 : 8
-      : shippingCountry === 'Canada' ? 18 : 28;
-  const usTaxRates: Record<string, number> = { IL: .1025, CA: .0725, NY: .08875, TX: .0825, FL: .07 };
-  const taxRate = shippingCountry === 'United States'
-    ? (usTaxRates[shippingRegion.toUpperCase()] ?? .0825)
-    : shippingCountry === 'Canada' ? .13
-      : ['United Kingdom', 'European Union'].includes(shippingCountry) ? .2 : 0;
-  const estimatedTax = subtotal * taxRate;
-  const orderTotal = subtotal + shipping + estimatedTax;
 
   const openProduct = (index: number) => {
     setSelectedColor(index);
@@ -234,19 +222,39 @@ export default function Home() {
 
   const beginCheckout = () => {
     if (!cartItems.length) return;
-    setCheckoutStep('delivery');
+    setCheckoutStep('payment');
+    setCheckoutError('');
     setBagOpen(false);
     setCheckoutOpen(true);
   };
 
-  const completeOrder = (event: React.FormEvent<HTMLFormElement>) => {
+  const startStripeCheckout = async (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setCompletedOrder({
-      number: `SC-${Date.now().toString().slice(-6)}`,
-      total: orderTotal,
-    });
-    setCartItems([]);
-    setCheckoutStep('success');
+    if (!cartItems.length || checkoutPending) return;
+
+    setCheckoutPending(true);
+    setCheckoutError('');
+
+    try {
+      const apiBase = window.location.hostname.endsWith('.vercel.app')
+        ? `${window.location.origin}/api`
+        : productionCheckoutApi;
+      const response = await fetch(`${apiBase}/create-checkout-session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: cartItems }),
+      });
+      const result = await response.json() as { error?: string; url?: string };
+
+      if (!response.ok || !result.url) {
+        throw new Error(result.error || 'Checkout could not be started.');
+      }
+
+      window.location.assign(result.url);
+    } catch (error) {
+      setCheckoutError(error instanceof Error ? error.message : 'Checkout could not be started.');
+      setCheckoutPending(false);
+    }
   };
 
   const modelContext = useMemo(
@@ -272,6 +280,52 @@ export default function Home() {
   useEffect(() => {
     if (cartReady) window.localStorage.setItem('scallium-cart', JSON.stringify(cartItems));
   }, [cartItems, cartReady]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const checkoutResult = params.get('checkout');
+    const sessionId = params.get('session_id');
+
+    if (checkoutResult === 'cancelled') {
+      setCheckoutError('Checkout was cancelled. Your bag is still saved.');
+      setBagOpen(true);
+      window.history.replaceState({}, '', `${window.location.pathname}#shop`);
+      return;
+    }
+
+    if (checkoutResult !== 'success' || !sessionId) return;
+
+    const apiBase = window.location.hostname.endsWith('.vercel.app')
+      ? `${window.location.origin}/api`
+      : productionCheckoutApi;
+
+    void fetch(`${apiBase}/checkout-status?session_id=${encodeURIComponent(sessionId)}`)
+      .then(async (response) => {
+        const result = await response.json() as {
+          amountTotal?: number;
+          orderNumber?: string;
+          paymentStatus?: string;
+        };
+
+        if (!response.ok || result.paymentStatus !== 'paid') {
+          throw new Error('Payment confirmation is still pending. Check your Stripe receipt before retrying.');
+        }
+
+        setCompletedOrder({
+          number: result.orderNumber ?? `SC-${sessionId.slice(-8).toUpperCase()}`,
+          total: (result.amountTotal ?? 0) / 100,
+        });
+        setCartItems([]);
+        setCheckoutStep('success');
+        setCheckoutOpen(true);
+        window.history.replaceState({}, '', window.location.pathname);
+      })
+      .catch((error: unknown) => {
+        setCheckoutError(error instanceof Error ? error.message : 'Payment confirmation could not be loaded.');
+        setCheckoutStep('payment');
+        setCheckoutOpen(true);
+      });
+  }, []);
 
   useEffect(() => {
     if (!modelContext?.registerTool) return;
@@ -573,7 +627,7 @@ export default function Home() {
               <Button className="checkout-button" size="lg" onClick={beginCheckout}>
                 Checkout <ArrowRight aria-hidden="true" />
               </Button>
-              <p className="secure-note"><LockKeyhole aria-hidden="true" /> Secure preview checkout</p>
+              <p className="secure-note"><LockKeyhole aria-hidden="true" /> Secure checkout powered by Stripe</p>
             </SheetFooter>
           )}
         </SheetContent>
@@ -581,58 +635,35 @@ export default function Home() {
 
       <Dialog open={checkoutOpen} onOpenChange={(open) => {
         setCheckoutOpen(open);
-        if (!open && checkoutStep === 'success') setCheckoutStep('delivery');
+        if (!open && checkoutStep === 'success') setCheckoutStep('payment');
       }}>
         <DialogContent className={`checkout-dialog ${checkoutStep === 'success' ? 'checkout-complete' : ''}`} showCloseButton={checkoutStep !== 'success'}>
           <DialogTitle className="sr-only">Scallium checkout</DialogTitle>
-          <DialogDescription className="sr-only">Complete delivery and payment details for your order.</DialogDescription>
+          <DialogDescription className="sr-only">Review your order before continuing to secure Stripe checkout.</DialogDescription>
 
           <section className="checkout-main">
             <div className="checkout-brand"><Monogram /><span>SCALLIOM</span></div>
 
             {checkoutStep !== 'success' && (
               <div className="checkout-steps" aria-label="Checkout progress">
-                <span data-active={checkoutStep === 'delivery'}>01 <b>Delivery</b></span>
-                <span data-active={checkoutStep === 'payment'}>02 <b>Payment</b></span>
+                <span>01 <b>Bag</b></span>
+                <span data-active={checkoutStep === 'payment'}>02 <b>Secure checkout</b></span>
                 <span>03 <b>Complete</b></span>
               </div>
             )}
 
-            {checkoutStep === 'delivery' && (
-              <form className="checkout-form" onSubmit={(event) => { event.preventDefault(); setCheckoutStep('payment'); }}>
-                <header><p>Step 01</p><h2>Where should it arrive?</h2></header>
-                <div className="express-pay">
-                  <span>Express checkout</span>
-                  <div><button type="button" onClick={() => setExpressNotice('Apple Pay will activate when Stripe is connected.')}> Pay</button><button type="button" onClick={() => setExpressNotice('Google Pay will activate when Stripe is connected.')}>G Pay</button><button type="button" onClick={() => setExpressNotice('Shop Pay will activate when the commerce backend is connected.')}>shop<span>Pay</span></button></div>
-                  {expressNotice && <small>{expressNotice}</small>}
-                </div>
-                <div className="checkout-divider"><span>or continue with delivery</span></div>
-                <div className="field-grid">
-                  <label className="field-wide">Email address<Input type="email" name="email" autoComplete="email" placeholder="you@example.com" required /></label>
-                  <label>First name<Input name="firstName" autoComplete="given-name" required /></label>
-                  <label>Last name<Input name="lastName" autoComplete="family-name" required /></label>
-                  <label className="field-wide">Street address<Input name="address" autoComplete="street-address" required /></label>
-                  <label>City<Input name="city" autoComplete="address-level2" required /></label>
-                  <label>State / region<Input name="state" autoComplete="address-level1" placeholder="IL" value={shippingRegion} onChange={(event) => setShippingRegion(event.target.value)} maxLength={30} required /></label>
-                  <label>ZIP / postal code<Input name="postalCode" autoComplete="postal-code" inputMode="numeric" minLength={3} required /></label>
-                  <label>Country<select name="country" autoComplete="country-name" value={shippingCountry} onChange={(event) => setShippingCountry(event.target.value)} required><option>United States</option><option>Canada</option><option>United Kingdom</option><option>European Union</option><option>Rest of world</option></select></label>
-                </div>
-                <Button className="checkout-next" type="submit" size="lg">Continue to payment <ArrowRight aria-hidden="true" /></Button>
-              </form>
-            )}
-
             {checkoutStep === 'payment' && (
-              <form className="checkout-form" onSubmit={completeOrder}>
-                <button className="checkout-back" type="button" onClick={() => setCheckoutStep('delivery')}><ArrowLeft aria-hidden="true" /> Delivery</button>
-                <header><p>Step 02</p><h2>Complete your order.</h2></header>
-                <div className="payment-banner"><CreditCard aria-hidden="true" /><span><strong>Secure card payment</strong><small>Preview only — no payment will be processed.</small></span></div>
-                <div className="field-grid">
-                  <label className="field-wide">Name on card<Input name="cardName" autoComplete="cc-name" required /></label>
-                  <label className="field-wide">Card number<Input name="cardNumber" autoComplete="cc-number" inputMode="numeric" placeholder="4242 4242 4242 4242" minLength={15} required /></label>
-                  <label>Expiration<Input name="expiry" autoComplete="cc-exp" placeholder="MM / YY" required /></label>
-                  <label>Security code<Input name="cvc" autoComplete="cc-csc" inputMode="numeric" placeholder="CVC" minLength={3} maxLength={4} required /></label>
+              <form className="checkout-form" onSubmit={startStripeCheckout}>
+                <header><p>Step 02</p><h2>Complete it securely.</h2></header>
+                <div className="payment-banner"><CreditCard aria-hidden="true" /><span><strong>Stripe-hosted checkout</strong><small>SCALLIOM never receives or stores your card number.</small></span></div>
+                <div className="stripe-checkout-copy">
+                  <p>Stripe will collect your delivery address, validate payment details, calculate applicable tax, and show available express wallets such as Apple Pay or Google Pay when supported on your device.</p>
+                  <p>Standard shipping is complimentary over $120. International duties or brokerage may be collected by the destination carrier.</p>
                 </div>
-                <Button className="checkout-next" type="submit" size="lg"><LockKeyhole aria-hidden="true" /> Pay ${orderTotal.toFixed(2)}</Button>
+                {checkoutError && <p className="checkout-error" role="alert">{checkoutError}</p>}
+                <Button className="checkout-next" type="submit" size="lg" disabled={checkoutPending}>
+                  <LockKeyhole aria-hidden="true" /> {checkoutPending ? 'Opening Stripe…' : `Continue to Stripe · $${subtotal.toFixed(2)} + delivery/tax`}
+                </Button>
               </form>
             )}
 
@@ -663,11 +694,11 @@ export default function Home() {
             })}
             <dl className="checkout-totals">
               <div><dt>Subtotal</dt><dd>${subtotal.toFixed(2)}</dd></div>
-              <div><dt>Shipping</dt><dd>{shipping ? `$${shipping.toFixed(2)}` : 'Complimentary'}</dd></div>
-              <div><dt>Estimated tax</dt><dd>${estimatedTax.toFixed(2)}</dd></div>
-              <div className="checkout-total"><dt>Total</dt><dd>USD ${orderTotal.toFixed(2)}</dd></div>
+              <div><dt>Shipping</dt><dd>Calculated by Stripe</dd></div>
+              <div><dt>Tax</dt><dd>Based on delivery address</dd></div>
+              <div className="checkout-total"><dt>Due before tax</dt><dd>USD ${subtotal.toFixed(2)}</dd></div>
             </dl>
-            <p className="duties-note">{shippingCountry === 'United States' ? 'Taxes estimated from the delivery state. Final amount is confirmed before payment.' : 'International duties and brokerage may be collected by the destination carrier.'}</p>
+            <p className="duties-note">The final price, delivery charge, tax, and estimated arrival are shown on Stripe before payment is submitted.</p>
             <p className="checkout-promise"><LockKeyhole aria-hidden="true" /> Encrypted checkout · 30-day returns</p>
           </aside>}
         </DialogContent>
