@@ -146,6 +146,14 @@ const checkoutHandler = {
       return jsonResponse({ url: session.url }, 200, origin);
     } catch (error) {
       const isInvalidCart = error instanceof Error && error.message === 'INVALID_CART';
+      if (!isInvalidCart) {
+        const stripeError = error as { code?: string; message?: string; type?: string };
+        console.error('Stripe checkout session creation failed', {
+          code: stripeError.code,
+          message: stripeError.message,
+          type: stripeError.type,
+        });
+      }
       return jsonResponse(
         { error: isInvalidCart ? 'One or more bag items are invalid.' : 'Checkout could not be started. Please try again.' },
         isInvalidCart ? 400 : 500,
