@@ -71,6 +71,13 @@ const checkoutHandler = {
 
       const sessionParams: Stripe.Checkout.SessionCreateParams = {
         mode: 'payment',
+        branding_settings: {
+          display_name: 'SCALLIOM',
+          background_color: '#f4efe6',
+          button_color: '#171512',
+          border_style: 'rectangular',
+          font_family: 'raleway',
+        },
         customer_creation: 'always',
         billing_address_collection: 'auto',
         phone_number_collection: { enabled: true },

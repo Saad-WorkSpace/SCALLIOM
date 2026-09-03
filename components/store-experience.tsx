@@ -173,7 +173,7 @@ export function ProductDetailSection({ onSizeGuide, onOpenProduct }: { onSizeGui
           <label>Destination<select value={country} onChange={(event) => { setCountry(event.target.value); setEstimated(false); }}><option>United States</option><option>Canada</option><option>United Kingdom</option><option>European Union</option><option>Rest of world</option></select></label>
           <label>Postal code<Input value={postal} onChange={(event) => { setPostal(event.target.value); setEstimated(false); }} placeholder="60601" required /></label>
           <Button type="submit">Estimate</Button>
-          {estimated && <div className="shipping-result"><Check aria-hidden="true" /><span><b>{rate}</b>Estimated arrival in {window}. Taxes update at checkout. International duties may be collected by the carrier.</span></div>}
+          {estimated && <div className="shipping-result"><Check aria-hidden="true" /><span><b>{rate}</b>Estimated arrival in {window}. Applicable taxes update at checkout. International duties may be collected by the carrier.</span></div>}
         </form>
       </div>
     </section>

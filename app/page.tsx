@@ -622,7 +622,7 @@ export default function Home() {
               </div>
               <div className="bag-totals">
                 <span>Subtotal</span><strong>${subtotal.toFixed(2)}</strong>
-                <small>Shipping and taxes calculated at checkout.</small>
+                <small>Shipping and applicable taxes are finalized by Stripe.</small>
               </div>
               <Button className="checkout-button" size="lg" onClick={beginCheckout}>
                 Checkout <ArrowRight aria-hidden="true" />
@@ -657,12 +657,12 @@ export default function Home() {
                 <header><p>Step 02</p><h2>Complete it securely.</h2></header>
                 <div className="payment-banner"><CreditCard aria-hidden="true" /><span><strong>Stripe-hosted checkout</strong><small>SCALLIOM never receives or stores your card number.</small></span></div>
                 <div className="stripe-checkout-copy">
-                  <p>Stripe will collect your delivery address, validate payment details, calculate applicable tax, and show available express wallets such as Apple Pay or Google Pay when supported on your device.</p>
+                  <p>Stripe will collect your delivery address, validate payment details, calculate applicable tax when enabled, and show available express wallets such as Apple Pay or Google Pay when supported on your device.</p>
                   <p>Standard shipping is complimentary over $120. International duties or brokerage may be collected by the destination carrier.</p>
                 </div>
                 {checkoutError && <p className="checkout-error" role="alert">{checkoutError}</p>}
                 <Button className="checkout-next" type="submit" size="lg" disabled={checkoutPending}>
-                  <LockKeyhole aria-hidden="true" /> {checkoutPending ? 'Opening Stripe…' : `Continue to Stripe · $${subtotal.toFixed(2)} + delivery/tax`}
+                  <LockKeyhole aria-hidden="true" /> {checkoutPending ? 'Opening Stripe…' : `Continue to Stripe · $${subtotal.toFixed(2)} + delivery/applicable tax`}
                 </Button>
               </form>
             )}
@@ -695,10 +695,10 @@ export default function Home() {
             <dl className="checkout-totals">
               <div><dt>Subtotal</dt><dd>${subtotal.toFixed(2)}</dd></div>
               <div><dt>Shipping</dt><dd>Calculated by Stripe</dd></div>
-              <div><dt>Tax</dt><dd>Based on delivery address</dd></div>
+              <div><dt>Tax</dt><dd>Calculated when applicable</dd></div>
               <div className="checkout-total"><dt>Due before tax</dt><dd>USD ${subtotal.toFixed(2)}</dd></div>
             </dl>
-            <p className="duties-note">The final price, delivery charge, tax, and estimated arrival are shown on Stripe before payment is submitted.</p>
+            <p className="duties-note">The final price, delivery charge, any applicable tax, and estimated arrival are shown on Stripe before payment is submitted.</p>
             <p className="checkout-promise"><LockKeyhole aria-hidden="true" /> Encrypted checkout · 30-day returns</p>
           </aside>}
         </DialogContent>
