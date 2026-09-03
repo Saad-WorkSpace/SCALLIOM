@@ -4,7 +4,7 @@ SCALLIOM is a polished concept storefront for the brand's First Edition heavywei
 
 ## Live site
 
-[scalliom-git-main-pr0ject-2026.vercel.app](https://scalliom-git-main-pr0ject-2026.vercel.app/)
+[scalliom.vercel.app](https://scalliom.vercel.app/)
 
 [saad-workspace.github.io/SCALLIOM](https://saad-workspace.github.io/SCALLIOM/)
 

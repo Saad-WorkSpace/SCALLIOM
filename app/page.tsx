@@ -80,7 +80,7 @@ type CartItem = {
 };
 type CheckoutStep = 'payment' | 'success';
 
-const productionCheckoutApi = 'https://scalliom-git-main-pr0ject-2026.vercel.app/api';
+const productionCheckoutApi = 'https://scalliom.vercel.app/api';
 
 type ModelTool = {
   name: string;

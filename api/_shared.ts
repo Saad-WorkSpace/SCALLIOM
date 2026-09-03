@@ -1,4 +1,4 @@
-const PRODUCTION_ORIGIN = 'https://scalliom-git-main-pr0ject-2026.vercel.app';
+const PRODUCTION_ORIGIN = 'https://scalliom.vercel.app';
 
 const trustedOrigins = new Set([
   PRODUCTION_ORIGIN,
