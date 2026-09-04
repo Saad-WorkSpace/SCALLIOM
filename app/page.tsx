@@ -81,6 +81,7 @@ type CartItem = {
 type CheckoutStep = 'payment' | 'success';
 
 const productionCheckoutApi = 'https://scalliom.vercel.app/api';
+const productPrice = 50;
 
 type ModelTool = {
   name: string;
@@ -188,7 +189,7 @@ export default function Home() {
 
   const activeColor = colorways[selectedColor];
   const bagCount = cartItems.reduce((total, item) => total + item.quantity, 0);
-  const subtotal = cartItems.reduce((total, item) => total + item.quantity * 68, 0);
+  const subtotal = cartItems.reduce((total, item) => total + item.quantity * productPrice, 0);
 
   const openProduct = (index: number) => {
     setSelectedColor(index);
@@ -428,7 +429,7 @@ export default function Home() {
               <strong>Classic Black Heavy Tee</strong>
               <small>450 GSM / Ink</small>
             </span>
-            <strong>$68</strong>
+            <strong>${productPrice}</strong>
           </span>
         </button>
       </section>
@@ -456,7 +457,7 @@ export default function Home() {
                   <strong>Classic {colorway.displayName} Heavy Tee</strong>
                   <small>{colorway.name}</small>
                 </span>
-                <strong>$68</strong>
+                <strong>${productPrice}</strong>
               </span>
             </button>
           ))}
@@ -505,7 +506,7 @@ export default function Home() {
           <div className="product-panel">
             <p className="product-index">Edition 001 / {String(selectedColor + 1).padStart(2, '0')}</p>
             <h2>Classic {activeColor.displayName} Heavy Tee</h2>
-            <p className="product-price">$68</p>
+            <p className="product-price">${productPrice}</p>
             <p className="product-copy">
               A dense, garment-washed jersey with a composed drape. The SCALLIOM wordmark is
               screened alone across the back; the interlocked SM mark stands alone on the front.
@@ -555,7 +556,7 @@ export default function Home() {
             </fieldset>
 
             <Button className="add-button" size="lg" onClick={addToBag}>
-              {added ? <><Check aria-hidden="true" /> Added to bag</> : <>Add to bag <span>$68</span></>}
+              {added ? <><Check aria-hidden="true" /> Added to bag</> : <>Add to bag <span>${productPrice}</span></>}
             </Button>
 
             <div className="product-notes">
@@ -598,7 +599,7 @@ export default function Home() {
                       </button>
                     </div>
                   </div>
-                  <strong className="bag-line-price">${item.quantity * 68}</strong>
+                  <strong className="bag-line-price">${item.quantity * productPrice}</strong>
                 </article>
               );
             }) : (
@@ -688,7 +689,7 @@ export default function Home() {
                 <div className="summary-item" key={item.id}>
                   <span className="summary-image"><img src={colorway.front} alt="" /><b>{item.quantity}</b></span>
                   <span><strong>Classic {colorway.displayName} Heavy Tee</strong><small>{colorway.name} / {item.size}</small></span>
-                  <strong>${(item.quantity * 68).toFixed(2)}</strong>
+                  <strong>${(item.quantity * productPrice).toFixed(2)}</strong>
                 </div>
               );
             })}

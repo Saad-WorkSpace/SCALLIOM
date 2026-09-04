@@ -8,6 +8,7 @@ const catalog = [
 ] as const;
 
 const validSizes = new Set(['S', 'M', 'L', 'XL']);
+const unitAmount = 5000;
 const allowedCountries: NonNullable<
   Stripe.Checkout.SessionCreateParams['shipping_address_collection']
 >['allowed_countries'] = [
@@ -63,7 +64,7 @@ const checkoutHandler = {
         return jsonResponse({ error: 'Limit your checkout to 20 pieces.' }, 400, origin);
       }
 
-      const subtotal = totalQuantity * 6800;
+      const subtotal = totalQuantity * unitAmount;
       const returnBase = getReturnBase(origin);
       const stripe = new Stripe(secretKey);
       const imageOrigin = new URL(request.url).origin;
@@ -117,7 +118,7 @@ const checkoutHandler = {
           adjustable_quantity: { enabled: true, minimum: 1, maximum: 10 },
           price_data: {
             currency: 'usd',
-            unit_amount: 6800,
+            unit_amount: unitAmount,
             tax_behavior: 'exclusive',
             product_data: {
               name: `Classic ${product.displayName} Heavy Tee`,
