@@ -10,7 +10,6 @@ import {
   ArrowUpRight,
   BookOpenText,
   Check,
-  CreditCard,
   House,
   LockKeyhole,
   Minus,
@@ -617,18 +616,14 @@ export default function Home() {
 
           {cartItems.length > 0 && (
             <SheetFooter className="bag-footer">
-              <div className="shipping-progress">
-                <span>{subtotal >= 120 ? 'Complimentary shipping unlocked' : `$${120 - subtotal} away from complimentary shipping`}</span>
-                <span className="shipping-track"><span style={{ width: `${Math.min(100, subtotal / 1.2)}%` }} /></span>
-              </div>
               <div className="bag-totals">
                 <span>Subtotal</span><strong>${subtotal.toFixed(2)}</strong>
-                <small>Shipping and applicable taxes are finalized by Stripe.</small>
+                <small>Your final order total is shown before payment.</small>
               </div>
               <Button className="checkout-button" size="lg" onClick={beginCheckout}>
-                Checkout <ArrowRight aria-hidden="true" />
+                Pay Now <ArrowRight aria-hidden="true" />
               </Button>
-              <p className="secure-note"><LockKeyhole aria-hidden="true" /> Secure checkout powered by Stripe</p>
+              <p className="secure-note"><LockKeyhole aria-hidden="true" /> Payment processed securely by Stripe</p>
             </SheetFooter>
           )}
         </SheetContent>
@@ -640,30 +635,17 @@ export default function Home() {
       }}>
         <DialogContent className={`checkout-dialog ${checkoutStep === 'success' ? 'checkout-complete' : ''}`} showCloseButton={checkoutStep !== 'success'}>
           <DialogTitle className="sr-only">Scallium checkout</DialogTitle>
-          <DialogDescription className="sr-only">Review your order before continuing to secure Stripe checkout.</DialogDescription>
+          <DialogDescription className="sr-only">Review your order and pay now.</DialogDescription>
 
           <section className="checkout-main">
             <div className="checkout-brand"><Monogram /><span>SCALLIOM</span></div>
 
-            {checkoutStep !== 'success' && (
-              <div className="checkout-steps" aria-label="Checkout progress">
-                <span>01 <b>Bag</b></span>
-                <span data-active={checkoutStep === 'payment'}>02 <b>Secure checkout</b></span>
-                <span>03 <b>Complete</b></span>
-              </div>
-            )}
-
             {checkoutStep === 'payment' && (
               <form className="checkout-form" onSubmit={startStripeCheckout}>
-                <header><p>Step 02</p><h2>Complete it securely.</h2></header>
-                <div className="payment-banner"><CreditCard aria-hidden="true" /><span><strong>Stripe-hosted checkout</strong><small>SCALLIOM never receives or stores your card number.</small></span></div>
-                <div className="stripe-checkout-copy">
-                  <p>Stripe will collect your delivery address, validate payment details, calculate applicable tax when enabled, and show available express wallets such as Apple Pay or Google Pay when supported on your device.</p>
-                  <p>Standard shipping is complimentary over $120. International duties or brokerage may be collected by the destination carrier.</p>
-                </div>
+                <header><p>SCALLIOM / Edition 001</p><h2>Pay Now</h2></header>
                 {checkoutError && <p className="checkout-error" role="alert">{checkoutError}</p>}
                 <Button className="checkout-next" type="submit" size="lg" disabled={checkoutPending}>
-                  <LockKeyhole aria-hidden="true" /> {checkoutPending ? 'Opening Stripe…' : `Continue to Stripe · $${subtotal.toFixed(2)} + delivery/applicable tax`}
+                  <LockKeyhole aria-hidden="true" /> {checkoutPending ? 'Opening payment…' : `Pay Now · $${subtotal.toFixed(2)}`}
                 </Button>
               </form>
             )}
@@ -694,12 +676,8 @@ export default function Home() {
               );
             })}
             <dl className="checkout-totals">
-              <div><dt>Subtotal</dt><dd>${subtotal.toFixed(2)}</dd></div>
-              <div><dt>Shipping</dt><dd>Calculated by Stripe</dd></div>
-              <div><dt>Tax</dt><dd>Calculated when applicable</dd></div>
-              <div className="checkout-total"><dt>Due before tax</dt><dd>USD ${subtotal.toFixed(2)}</dd></div>
+              <div className="checkout-total"><dt>Total</dt><dd>USD ${subtotal.toFixed(2)}</dd></div>
             </dl>
-            <p className="duties-note">The final price, delivery charge, any applicable tax, and estimated arrival are shown on Stripe before payment is submitted.</p>
             <p className="checkout-promise"><LockKeyhole aria-hidden="true" /> Encrypted checkout · 30-day returns</p>
           </aside>}
         </DialogContent>
