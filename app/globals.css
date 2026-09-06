@@ -631,6 +631,15 @@ a {
   inset: 0;
 }
 
+.centered-product-media img {
+  object-position: center center;
+  transform-origin: center center;
+}
+
+.product-image-wrap.centered-product-media img {
+  will-change: transform, opacity;
+}
+
 .product-image-wrap svg,
 .depth-card svg,
 .bag-item > svg,
@@ -867,6 +876,7 @@ a {
   height: 100%;
   display: block;
   object-fit: cover;
+  object-position: center center;
 }
 .depth-card > span {
   position: absolute;

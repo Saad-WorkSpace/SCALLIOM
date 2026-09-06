@@ -27,17 +27,17 @@ const catalog = {
       {
         color: 'Black',
         displayName: 'Black',
-        image: 'scallium-baggy-sweatpants-reference.jpg',
+        image: 'scallium-sweatpants-black-front-hd.webp',
       },
       {
         color: 'Brown',
         displayName: 'Brown',
-        image: 'scallium-baggy-sweatpants-reference.jpg',
+        image: 'scallium-sweatpants-brown-front-hd.webp',
       },
       {
         color: 'Bone',
         displayName: 'Bone',
-        image: 'scallium-baggy-sweatpants-reference.jpg',
+        image: 'scallium-sweatpants-bone-front-hd.webp',
       },
     ],
   },
@@ -50,17 +50,17 @@ const catalog = {
       {
         color: 'Black',
         displayName: 'Black',
-        image: 'scallium-relaxed-shorts-reference.jpg',
+        image: 'scallium-shorts-black-front-hd.webp',
       },
       {
         color: 'Brown',
         displayName: 'Brown',
-        image: 'scallium-relaxed-shorts-reference.jpg',
+        image: 'scallium-shorts-brown-front-hd.webp',
       },
       {
         color: 'Bone',
         displayName: 'Bone',
-        image: 'scallium-relaxed-shorts-reference.jpg',
+        image: 'scallium-shorts-bone-front-hd.webp',
       },
     ],
   },

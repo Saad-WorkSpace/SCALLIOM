@@ -52,14 +52,6 @@ type BackLogoChoice = 'wordmark' | 'plain';
 type ProductId = 'heavy-tee' | 'baggy-sweatpants' | 'relaxed-shorts';
 type ProductMedia = {
   src: string;
-  crop?: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    sourceWidth: number;
-    sourceHeight: number;
-  };
 };
 type ProductColorway = {
   name: string;
@@ -96,18 +88,6 @@ const productionCheckoutApi = 'https://scalliom.vercel.app/api';
 const imageMedia = (path: string): ProductMedia => ({
   src: withBasePath(path),
 });
-const cropMedia = (
-  path: string,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  sourceWidth: number,
-  sourceHeight: number,
-): ProductMedia => ({
-  src: withBasePath(path),
-  crop: { x, y, width, height, sourceWidth, sourceHeight },
-});
 
 const teeColorways: ProductColorway[] = [
   {
@@ -136,32 +116,51 @@ const teeColorways: ProductColorway[] = [
   },
 ];
 
-const lowerColorways = (
-  path: string,
-  sourceHeight: number,
-  cropY: number,
-  cropHeight: number,
-): ProductColorway[] => [
+const sweatpantsColorways: ProductColorway[] = [
   {
     name: 'Black',
     displayName: 'Black',
     tone: '#151515',
-    front: cropMedia(path, 0, cropY, 196.5, cropHeight, 1179, sourceHeight),
-    back: cropMedia(path, 196.5, cropY, 196.5, cropHeight, 1179, sourceHeight),
+    front: imageMedia('/products/scallium-sweatpants-black-front-hd.webp'),
+    back: imageMedia('/products/scallium-sweatpants-black-back-hd.webp'),
   },
   {
     name: 'Brown',
     displayName: 'Brown',
     tone: '#3a271f',
-    front: cropMedia(path, 393, cropY, 196.5, cropHeight, 1179, sourceHeight),
-    back: cropMedia(path, 589.5, cropY, 196.5, cropHeight, 1179, sourceHeight),
+    front: imageMedia('/products/scallium-sweatpants-brown-front-hd.webp'),
+    back: imageMedia('/products/scallium-sweatpants-brown-back-hd.webp'),
   },
   {
     name: 'Bone',
     displayName: 'Bone',
     tone: '#e7dfcf',
-    front: cropMedia(path, 786, cropY, 196.5, cropHeight, 1179, sourceHeight),
-    back: cropMedia(path, 982.5, cropY, 196.5, cropHeight, 1179, sourceHeight),
+    front: imageMedia('/products/scallium-sweatpants-bone-front-hd.webp'),
+    back: imageMedia('/products/scallium-sweatpants-bone-back-hd.webp'),
+  },
+];
+
+const shortsColorways: ProductColorway[] = [
+  {
+    name: 'Black',
+    displayName: 'Black',
+    tone: '#151515',
+    front: imageMedia('/products/scallium-shorts-black-front-hd.webp'),
+    back: imageMedia('/products/scallium-shorts-black-back-hd.webp'),
+  },
+  {
+    name: 'Brown',
+    displayName: 'Brown',
+    tone: '#3a271f',
+    front: imageMedia('/products/scallium-shorts-brown-front-hd.webp'),
+    back: imageMedia('/products/scallium-shorts-brown-back-hd.webp'),
+  },
+  {
+    name: 'Bone',
+    displayName: 'Bone',
+    tone: '#e7dfcf',
+    front: imageMedia('/products/scallium-shorts-bone-front-hd.webp'),
+    back: imageMedia('/products/scallium-shorts-bone-back-hd.webp'),
   },
 ];
 
@@ -189,12 +188,7 @@ const products: Product[] = [
     description:
       'Heavy brushed fleece with a deep rise, relaxed leg, elastic waist, and long stacked break.',
     note: 'SM front / SCALLIOM back',
-    colorways: lowerColorways(
-      '/products/scallium-baggy-sweatpants-reference.jpg',
-      786,
-      42,
-      484,
-    ),
+    colorways: sweatpantsColorways,
   },
   {
     id: 'relaxed-shorts',
@@ -206,12 +200,7 @@ const products: Product[] = [
     description:
       'Structured fleece shorts with a relaxed leg, soft interior, elastic waist, and tonal drawcord.',
     note: 'Relic SM front / SCALLIOM back',
-    colorways: lowerColorways(
-      '/products/scallium-relaxed-shorts-reference.jpg',
-      413,
-      28,
-      210,
-    ),
+    colorways: shortsColorways,
   },
 ];
 
@@ -280,21 +269,7 @@ function ProductMediaView({
   alt: string;
   className?: string;
 }) {
-  if (!media.crop)
-    return <img className={className} src={media.src} alt={alt} />;
-
-  const { x, y, width, height, sourceWidth, sourceHeight } = media.crop;
-  return (
-    <svg
-      className={className}
-      viewBox={`${x} ${y} ${width} ${height}`}
-      preserveAspectRatio="xMidYMid meet"
-      role="img"
-      aria-label={alt}
-    >
-      <image href={media.src} width={sourceWidth} height={sourceHeight} />
-    </svg>
-  );
+  return <img className={className} src={media.src} alt={alt} />;
 }
 
 function DepthCarousel({
@@ -318,7 +293,10 @@ function DepthCarousel({
   };
 
   return (
-    <div className="depth-carousel" aria-label="Product color gallery">
+    <div
+      className={`depth-carousel${product.id !== 'heavy-tee' ? ' centered-product-media' : ''}`}
+      aria-label="Product color gallery"
+    >
       <div className="carousel-stage">
         {product.colorways.map((colorway, index) => {
           const position = positionFor(index);
@@ -784,7 +762,9 @@ export default function Home() {
                     key={colorway.name}
                     onClick={() => openProduct(product.id, index)}
                   >
-                    <span className="product-image-wrap">
+                    <span
+                      className={`product-image-wrap${product.id !== 'heavy-tee' ? ' centered-product-media' : ''}`}
+                    >
                       <ProductMediaView
                         className="garment-front"
                         media={colorway.front}
