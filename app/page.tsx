@@ -256,6 +256,21 @@ function Monogram() {
   );
 }
 
+function CheckoutMotionMark({ opening }: { opening: boolean }) {
+  return (
+    <div
+      className={`checkout-motion-mark${opening ? ' is-opening' : ''}`}
+      aria-hidden="true"
+    >
+      <span className="checkout-orbit checkout-orbit-one" />
+      <span className="checkout-orbit checkout-orbit-two" />
+      <span className="checkout-letter checkout-letter-s">S</span>
+      <span className="checkout-letter checkout-letter-m">M</span>
+      <span className="checkout-motion-caption">SCALLIOM / SECURE</span>
+    </div>
+  );
+}
+
 function ProductMediaView({
   media,
   alt,
@@ -1152,26 +1167,41 @@ export default function Home() {
 
             {checkoutStep === 'payment' && (
               <form className="checkout-form" onSubmit={startStripeCheckout}>
-                <header>
-                  <p>SCALLIOM / Edition 001</p>
-                  <h2>Pay Now</h2>
+                <CheckoutMotionMark opening={checkoutPending} />
+                <header className="checkout-pay-header">
+                  <p>SCALLIOM / Final step</p>
+                  <h2>
+                    Almost <em>yours.</em>
+                  </h2>
+                  <span>
+                    Your selection is ready. Continue into SCALLIOM&apos;s
+                    encrypted Stripe checkout.
+                  </span>
                 </header>
                 {checkoutError && (
                   <p className="checkout-error" role="alert">
                     {checkoutError}
                   </p>
                 )}
+                <div className="checkout-total-reveal">
+                  <span>Total due</span>
+                  <strong>USD ${subtotal.toFixed(2)}</strong>
+                </div>
                 <Button
                   className="checkout-next"
                   type="submit"
                   size="lg"
                   disabled={checkoutPending}
                 >
-                  <LockKeyhole aria-hidden="true" />{' '}
-                  {checkoutPending
-                    ? 'Opening payment…'
-                    : `Pay Now · $${subtotal.toFixed(2)}`}
+                  <span>
+                    <LockKeyhole aria-hidden="true" />
+                    {checkoutPending ? 'Opening payment…' : 'Pay Now'}
+                  </span>
+                  <ArrowRight aria-hidden="true" />
                 </Button>
+                <p className="checkout-microcopy">
+                  Secure payment · Your bag stays saved if you return
+                </p>
               </form>
             )}
 
