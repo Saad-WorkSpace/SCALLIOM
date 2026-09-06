@@ -1,18 +1,80 @@
 import Stripe from 'stripe';
-import { corsHeaders, getReturnBase, getTrustedOrigin, jsonResponse } from './_shared.js';
+import {
+  corsHeaders,
+  getReturnBase,
+  getTrustedOrigin,
+  jsonResponse,
+} from './_shared.js';
 
-const catalog = [
-  { color: 'Ink', displayName: 'Black', image: 'scallium-black-front.png' },
-  { color: 'Dune', displayName: 'Dune', image: 'scallium-dune-front.png' },
-  { color: 'Bone', displayName: 'Bone', image: 'scallium-bone-front.png' },
-] as const;
+const catalog = {
+  'heavy-tee': {
+    name: 'Heavy Tee',
+    unitAmount: 5000,
+    weight: '450 GSM',
+    backLogoOptional: true,
+    colors: [
+      { color: 'Ink', displayName: 'Black', image: 'scallium-black-front.png' },
+      { color: 'Dune', displayName: 'Dune', image: 'scallium-dune-front.png' },
+      { color: 'Bone', displayName: 'Bone', image: 'scallium-bone-front.png' },
+    ],
+  },
+  'baggy-sweatpants': {
+    name: 'Baggy Sweatpants',
+    unitAmount: 7500,
+    weight: '500 GSM',
+    backLogoOptional: false,
+    colors: [
+      {
+        color: 'Black',
+        displayName: 'Black',
+        image: 'scallium-baggy-sweatpants-reference.jpg',
+      },
+      {
+        color: 'Brown',
+        displayName: 'Brown',
+        image: 'scallium-baggy-sweatpants-reference.jpg',
+      },
+      {
+        color: 'Bone',
+        displayName: 'Bone',
+        image: 'scallium-baggy-sweatpants-reference.jpg',
+      },
+    ],
+  },
+  'relaxed-shorts': {
+    name: 'Relaxed Shorts',
+    unitAmount: 5000,
+    weight: '450 GSM',
+    backLogoOptional: false,
+    colors: [
+      {
+        color: 'Black',
+        displayName: 'Black',
+        image: 'scallium-relaxed-shorts-reference.jpg',
+      },
+      {
+        color: 'Brown',
+        displayName: 'Brown',
+        image: 'scallium-relaxed-shorts-reference.jpg',
+      },
+      {
+        color: 'Bone',
+        displayName: 'Bone',
+        image: 'scallium-relaxed-shorts-reference.jpg',
+      },
+    ],
+  },
+} as const;
 
 const validSizes = new Set(['S', 'M', 'L', 'XL']);
-const unitAmount = 5000;
+const validBackLogoChoices = new Set(['wordmark', 'plain']);
+type ProductId = keyof typeof catalog;
 
 type CartInput = {
+  productId?: string;
   colorIndex?: number;
   size?: string;
+  backLogo?: string;
   quantity?: number;
 };
 
@@ -30,32 +92,59 @@ const checkoutHandler = {
 
     const secretKey = process.env.STRIPE_SECRET_KEY;
     if (!secretKey) {
-      return jsonResponse({ error: 'Stripe checkout is not configured yet.' }, 503, origin);
+      return jsonResponse(
+        { error: 'Stripe checkout is not configured yet.' },
+        503,
+        origin,
+      );
     }
 
     try {
-      const body = await request.json() as { items?: CartInput[] };
-      if (!Array.isArray(body.items) || body.items.length === 0 || body.items.length > 12) {
-        return jsonResponse({ error: 'Your bag is empty or invalid.' }, 400, origin);
+      const body = (await request.json()) as { items?: CartInput[] };
+      if (
+        !Array.isArray(body.items) ||
+        body.items.length === 0 ||
+        body.items.length > 12
+      ) {
+        return jsonResponse(
+          { error: 'Your bag is empty or invalid.' },
+          400,
+          origin,
+        );
       }
 
       let totalQuantity = 0;
       const normalizedItems = body.items.map((item) => {
+        const productId = String(item.productId ?? 'heavy-tee') as ProductId;
         const colorIndex = Number(item.colorIndex);
         const quantity = Number(item.quantity);
         const size = String(item.size ?? '');
-        const product = catalog[colorIndex];
+        const product = catalog[productId];
+        const colorway = product?.colors[colorIndex];
+        const backLogo = String(item.backLogo ?? 'wordmark');
 
-        if (!product || !validSizes.has(size) || !Number.isInteger(quantity) || quantity < 1 || quantity > 10) {
+        if (
+          !product ||
+          !colorway ||
+          !validSizes.has(size) ||
+          !Number.isInteger(quantity) ||
+          quantity < 1 ||
+          quantity > 10 ||
+          (product.backLogoOptional && !validBackLogoChoices.has(backLogo))
+        ) {
           throw new Error('INVALID_CART');
         }
 
         totalQuantity += quantity;
-        return { product, quantity, size };
+        return { productId, product, colorway, quantity, size, backLogo };
       });
 
       if (totalQuantity > 20) {
-        return jsonResponse({ error: 'Limit your checkout to 20 pieces.' }, 400, origin);
+        return jsonResponse(
+          { error: 'Limit your checkout to 20 pieces.' },
+          400,
+          origin,
+        );
       }
 
       const returnBase = getReturnBase(origin);
@@ -74,24 +163,29 @@ const checkoutHandler = {
           font_family: 'raleway',
         },
         allow_promotion_codes: true,
-        line_items: normalizedItems.map(({ product, quantity, size }) => ({
-          quantity,
-          adjustable_quantity: { enabled: true, minimum: 1, maximum: 10 },
-          price_data: {
-            currency: 'usd',
-            unit_amount: unitAmount,
-            tax_behavior: 'exclusive',
-            product_data: {
-              name: `Classic ${product.displayName} Heavy Tee`,
-              description: `${product.color} / Size ${size} / 450 GSM`,
-              tax_code: 'txcd_30011000',
-              metadata: { color: product.color, size },
-              ...(canUseProductImages
-                ? { images: [`${imageOrigin}/products/${product.image}`] }
-                : {}),
+        line_items: normalizedItems.map(
+          ({ productId, product, colorway, quantity, size, backLogo }) => ({
+            quantity,
+            adjustable_quantity: { enabled: true, minimum: 1, maximum: 10 },
+            price_data: {
+              currency: 'usd',
+              unit_amount: product.unitAmount,
+              tax_behavior: 'exclusive',
+              product_data: {
+                name:
+                  productId === 'heavy-tee'
+                    ? `Classic ${colorway.displayName} ${product.name}`
+                    : `${colorway.displayName} ${product.name}`,
+                description: `${colorway.color} / Size ${size} / ${product.weight}${product.backLogoOptional ? ` / ${backLogo === 'plain' ? 'Plain back' : 'SCALLIOM back'}` : ''}`,
+                tax_code: 'txcd_30011000',
+                metadata: { productId, color: colorway.color, size, backLogo },
+                ...(canUseProductImages
+                  ? { images: [`${imageOrigin}/products/${colorway.image}`] }
+                  : {}),
+              },
             },
-          },
-        })),
+          }),
+        ),
         metadata: {
           collection: 'SCALLIOM Edition 001',
           source: origin.includes('github.io') ? 'github-pages' : 'vercel',
@@ -108,9 +202,14 @@ const checkoutHandler = {
 
       return jsonResponse({ url: session.url }, 200, origin);
     } catch (error) {
-      const isInvalidCart = error instanceof Error && error.message === 'INVALID_CART';
+      const isInvalidCart =
+        error instanceof Error && error.message === 'INVALID_CART';
       if (!isInvalidCart) {
-        const stripeError = error as { code?: string; message?: string; type?: string };
+        const stripeError = error as {
+          code?: string;
+          message?: string;
+          type?: string;
+        };
         console.error('Stripe checkout session creation failed', {
           code: stripeError.code,
           message: stripeError.message,
@@ -118,7 +217,11 @@ const checkoutHandler = {
         });
       }
       return jsonResponse(
-        { error: isInvalidCart ? 'One or more bag items are invalid.' : 'Checkout could not be started. Please try again.' },
+        {
+          error: isInvalidCart
+            ? 'One or more bag items are invalid.'
+            : 'Checkout could not be started. Please try again.',
+        },
         isInvalidCart ? 400 : 500,
         origin,
       );
